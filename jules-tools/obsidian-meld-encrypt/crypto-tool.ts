@@ -195,7 +195,6 @@ class CryptoHelperV2 implements ICryptoHelper {
 
 // =================================================================================
 // SECTION 2: FACTORY AND PARSING LOGIC
-// This section determines which crypto version to use based on the input text.
 // =================================================================================
 
 // In-place encryption markers, corresponds to Decryptable.version
@@ -286,9 +285,18 @@ function isWholeNote(text: string): boolean {
 // =================================================================================
 
 async function main() {
+    // Basic argument parsing
     const args = process.argv.slice(2);
+    const typeArgIndex = args.indexOf('--type');
+    let encryptionType = 'inplace'; // default
+
+    if (typeArgIndex > -1) {
+        encryptionType = args[typeArgIndex + 1];
+        args.splice(typeArgIndex, 2); // remove --type flag and its value
+    }
+
     if (args.length < 3) {
-        console.error("Usage: node crypto-tool.js <encrypt|decrypt> <password> <text>");
+        console.error("Usage: ts-node crypto-tool.ts <encrypt|decrypt> [--type inplace|wholenote] <password> \"<text>\"");
         process.exit(1);
     }
 
@@ -297,12 +305,20 @@ async function main() {
     const text = args[2];
 
     if (command === 'encrypt') {
-        // For simplicity, tool always encrypts with the latest (V2) format for in-place.
-        const helper = CryptoFactory.cryptoV2;
+        const helper = CryptoFactory.cryptoV2; // Always encrypt with the latest version
         const base64 = await helper.encryptToBase64(text, password);
-        // We will not add a hint via this tool for now.
-        const result = `${PREFIX_BETA}${base64}${SUFFIX}`;
-        console.log(result);
+
+        if (encryptionType === 'wholenote') {
+            const fileData: FileData = {
+                version: "2.0",
+                hint: "", // Hinting not supported via tool for now
+                encodedData: base64
+            };
+            console.log(JSON.stringify(fileData));
+        } else { // 'inplace' is the default
+            const result = `${PREFIX_BETA}${base64}${SUFFIX}`;
+            console.log(result);
+        }
 
     } else if (command === 'decrypt') {
         let decryptedText: string | null = null;

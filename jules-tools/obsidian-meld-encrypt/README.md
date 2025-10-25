@@ -16,32 +16,41 @@ The tool is a TypeScript script (`crypto-tool.ts`) that can be executed using `t
 
 ### Command Syntax
 ```bash
-npx ts-node /path/to/crypto-tool.ts <command> <password> "<text>"
+npx ts-node /path/to/crypto-tool.ts <command> [--type <encryptionType>] <password> "<text>"
 ```
 
 - **`<command>`**: Can be `encrypt` or `decrypt`.
+- **`[--type <encryptionType>]`**: (Optional) Specifies the output format for encryption. Can be `inplace` (default) or `wholenote`. This flag is only used with the `encrypt` command.
 - **`<password>`**: The password for the operation.
 - **`"<text>"`**: The text to be processed. **It is crucial to wrap the text in quotes** to handle special characters and multi-word strings correctly.
 
 ### Examples
 
-#### Encrypting Text
-This will encrypt the plain text "This is a secret note." using the password "supersecret". The tool will always use the latest and most secure encryption format (v2, in-place).
+#### Encrypting Text (In-Place)
+This is the default behavior. It wraps the encrypted content with markers.
 
 ```bash
 npx ts-node jules-tools/obsidian-meld-encrypt/crypto-tool.ts encrypt "supersecret" "This is a secret note."
 ```
+*Output will be in `%%🔐β...🔐%%` format.*
+
+#### Encrypting Text (Whole-Note)
+This is used when updating an entire `.mdenc` file. It outputs a JSON structure.
+
+```bash
+npx ts-node jules-tools/obsidian-meld-encrypt/crypto-tool.ts encrypt --type wholenote "supersecret" "This is a secret note."
+```
+*Output will be in `{"version":"2.0",...}` format.*
+
 
 #### Decrypting Text
-This will decrypt an in-place encrypted string. The tool automatically detects the encryption version (v0, v1, or v2) from the markers.
+Decryption is automatic. The tool inspects the input text to determine if it's in-place or whole-note format and decrypts it accordingly.
 
 ```bash
+# Decrypting an in-place string
 npx ts-node jules-tools/obsidian-meld-encrypt/crypto-tool.ts decrypt "supersecret" "%%🔐β LJyttF6oRVBDWpvvm/c/jWlcegwnjYlG7oaAGUkLTVLA+Bs07HLdVFtfrnJJBnBezkO0jWZvrTm1ROg= 🔐%%"
-```
 
-It can also decrypt a whole-note encrypted file's content (the JSON structure).
-
-```bash
+# Decrypting a whole-note JSON structure
 npx ts-node jules-tools/obsidian-meld-encrypt/crypto-tool.ts decrypt "supersecret" '{"version":"2.0","hint":"","encodedData":"..."}'
 ```
 
