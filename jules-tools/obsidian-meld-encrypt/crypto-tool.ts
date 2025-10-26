@@ -28,7 +28,7 @@ class CryptoHelperObsolete implements ICryptoHelper {
 		tagLength: 128
 	};
 
-	private async buildKey(password: string): Promise<CryptoKey> {
+	private async buildKey(password: string): Promise<webcrypto.CryptoKey> {
 		const passwordBytes = new TextEncoder().encode(password);
 		const passwordDigest = await webcrypto.subtle.digest({ name: 'SHA-256' }, passwordBytes);
 		return webcrypto.subtle.importKey('raw', passwordDigest, this.algorithm, false, ['encrypt', 'decrypt']);
@@ -69,7 +69,7 @@ class CryptoHelperV1 implements ICryptoHelper {
 	private readonly iterations = 1000;
 	private readonly salt = new TextEncoder().encode('XHWnDAT6ehMVY2zD');
 
-	private async deriveKey(password: string): Promise<CryptoKey> {
+	private async deriveKey(password: string): Promise<webcrypto.CryptoKey> {
 		const buffer = new TextEncoder().encode(password);
 		const key = await webcrypto.subtle.importKey('raw', buffer, { name: 'PBKDF2' }, false, ['deriveKey']);
 		return webcrypto.subtle.deriveKey(
@@ -136,7 +136,7 @@ class CryptoHelperV2 implements ICryptoHelper {
 		this.iterations = iterations;
 	}
 
-	private async deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+	private async deriveKey(password: string, salt: Uint8Array): Promise<webcrypto.CryptoKey> {
 		const buffer = new TextEncoder().encode(password);
 		const key = await webcrypto.subtle.importKey('raw', buffer, 'PBKDF2', false, ['deriveKey']);
 		return await webcrypto.subtle.deriveKey(
@@ -324,13 +324,18 @@ async function main() {
         let decryptedText: string | null = null;
 
         if (isWholeNote(text)) {
-            const fileData = JSON.parse(text) as FileData;
-            const helper = CryptoFactory.buildForFile(fileData);
-            decryptedText = await helper.decryptFromBase64(fileData.encodedData, password);
+            try {
+                const fileData = JSON.parse(text) as FileData;
+                const helper = CryptoFactory.buildForFile(fileData);
+                decryptedText = await helper.decryptFromBase64(fileData.encodedData, password);
+            } catch (e) {
+                 console.error("Decryption failed: could not parse whole-note JSON. Data may be corrupted.");
+                 process.exit(1);
+            }
         } else {
             const decryptable = parseInPlace(text);
             if (!decryptable) {
-                console.error("Decryption failed: could not parse in-place encryption markers.");
+                console.error("Decryption failed: could not parse in-place encryption markers. Data may be corrupted.");
                 process.exit(1);
             }
             const helper = CryptoFactory.build(decryptable);
@@ -338,7 +343,7 @@ async function main() {
         }
 
         if (decryptedText === null) {
-            console.error("Decryption failed: incorrect password or corrupted data.");
+            console.error("Decryption failed. If you are sure the password is correct, the data may be corrupted.");
             process.exit(1);
         }
         console.log(decryptedText);
