@@ -6,53 +6,55 @@ This tool is a command-line utility designed to encrypt and decrypt text content
 
 This enables workflows where the AI can be tasked to read, modify, and re-encrypt sensitive notes while ensuring the data remains secure and encrypted at rest in the repository.
 
-## 2. Usage
+## 2. Usage (Primary Method: Shell Scripts)
 
-The tool is a TypeScript script (`crypto-tool.ts`) that can be executed using `ts-node`.
+The primary and recommended method for using this tool is through the provided wrapper scripts. They are simpler, less error-prone, and enforce secure practices.
 
 ### Prerequisites
 - Node.js and npm must be installed.
 - Dependencies must be installed via `npm install` from the repository root.
+- The scripts must be executable (`chmod +x *.sh` has been run).
+
+### Scripts Overview
+
+- **`decrypt.sh`**: Decrypts any compatible encrypted text.
+- **`encrypt-inplace.sh`**: Encrypts text into the in-place format (for embedding in `.md` files).
+- **`encrypt-wholenote.sh`**: Encrypts text into the whole-note format (for `.mdenc` files).
 
 ### Command Syntax
 ```bash
-npx ts-node /path/to/crypto-tool.ts <command> [--type <encryptionType>] <password> "<text>"
-```
+# It is highly recommended to use an environment variable for the password
+# to prevent it from being saved in shell history.
+export PASSWORD="your-secret-password"
 
-- **`<command>`**: Can be `encrypt` or `decrypt`.
-- **`[--type <encryptionType>]`**: (Optional) Specifies the output format for encryption. Can be `inplace` (default) or `wholenote`. This flag is only used with the `encrypt` command.
-- **`<password>`**: The password for the operation.
-- **`"<text>"`**: The text to be processed. **It is crucial to wrap the text in quotes** to handle special characters and multi-word strings correctly.
+# Decrypting
+./decrypt.sh "$PASSWORD" "<encrypted_text>"
+
+# Encrypting
+./encrypt-inplace.sh "$PASSWORD" "<plaintext_to_encrypt>"
+./encrypt-wholenote.sh "$PASSWORD" "<plaintext_to_encrypt>"
+```
 
 ### Examples
 
-#### Encrypting Text (In-Place)
-This is the default behavior. It wraps the encrypted content with markers.
+#### Decrypting (Universal)
+The `decrypt.sh` script automatically detects the format and decrypts it.
 
 ```bash
-npx ts-node jules-tools/obsidian-meld-encrypt/crypto-tool.ts encrypt "supersecret" "This is a secret note."
+./jules-tools/obsidian-meld-encrypt/decrypt.sh "$PASSWORD" "%%🔐β...🔐%%"
 ```
-*Output will be in `%%🔐β...🔐%%` format.*
 
-#### Encrypting Text (Whole-Note)
-This is used when updating an entire `.mdenc` file. It outputs a JSON structure.
-
+#### Encrypting to In-Place Format
 ```bash
-npx ts-node jules-tools/obsidian-meld-encrypt/crypto-tool.ts encrypt --type wholenote "supersecret" "This is a secret note."
+./jules-tools/obsidian-meld-encrypt/encrypt-inplace.sh "$PASSWORD" "This is a new secret."
 ```
-*Output will be in `{"version":"2.0",...}` format.*
+*Output: `%%🔐β...🔐%%`*
 
-
-#### Decrypting Text
-Decryption is automatic. The tool inspects the input text to determine if it's in-place or whole-note format and decrypts it accordingly.
-
+#### Encrypting to Whole-Note Format
 ```bash
-# Decrypting an in-place string
-npx ts-node jules-tools/obsidian-meld-encrypt/crypto-tool.ts decrypt "supersecret" "%%🔐β LJyttF6oRVBDWpvvm/c/jWlcegwnjYlG7oaAGUkLTVLA+Bs07HLdVFtfrnJJBnBezkO0jWZvrTm1ROg= 🔐%%"
-
-# Decrypting a whole-note JSON structure
-npx ts-node jules-tools/obsidian-meld-encrypt/crypto-tool.ts decrypt "supersecret" '{"version":"2.0","hint":"","encodedData":"..."}'
+./jules-tools/obsidian-meld-encrypt/encrypt-wholenote.sh "$PASSWORD" "This is the full content of a secret note."
 ```
+*Output: `{"version":"2.0",...}`*
 
 ---
 
@@ -82,3 +84,6 @@ The process is always: **Decrypt -> Operate in Memory -> Re-encrypt.** The plain
 Treat every piece of decrypted information as maximally sensitive, regardless of its apparent nature. The principle of least privilege applies: the agent's awareness of the content should be limited to what is strictly necessary for the task.
 
 **Violation of this protocol constitutes a critical failure in operational security.**
+
+---
+*Advanced Usage: The underlying TypeScript tool can be called directly, but this is discouraged. Refer to the script files for the exact `ts-node` syntax if needed.*
